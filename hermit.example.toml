@@ -1,0 +1,44 @@
+# Copy to <your repo>/hermit.toml. Every key is optional; defaults shown.
+
+ignore = []                      # path prefixes to skip, e.g. ["migrations/", "generated/"]
+
+[graph]
+max_depth = 3                    # caller hops reported in the blast radius
+test_depth = 6                   # hops searched for tests that reach a change
+sensitive = ["auth", "login", "password", "token", "session", "payment",
+             "billing", "checkout", "crypto", "admin", "permission"]
+
+[security]
+semgrep = true                   # use Semgrep when installed (builtin rules otherwise)
+extra_configs = []               # e.g. ["p/owasp-top-ten"] (registry packs need network)
+
+[risk]                           # points per factor and caps (score = sum, clamped 0-100)
+critical = 45.0
+high = 25.0
+medium = 10.0
+low = 3.0
+security_cap = 60.0
+blast_per_log2 = 6.0             # x log2(1 + impacted callers)
+sensitive_bonus = 5.0
+blast_cap = 20.0
+breaking_per_symbol = 20.0       # signature change / deletion with live callers
+breaking_cap = 20.0
+complexity_per_point = 1.5
+complexity_cap = 15.0
+size_full_lines = 500.0
+size_cap = 10.0
+test_gap_cap = 15.0
+medium_at = 30
+high_at = 60
+
+[ai]
+enabled = true
+ollama_url = "http://127.0.0.1:11434"
+model = "qwen2.5-coder:7b"
+embed_model = "nomic-embed-text"
+timeout_secs = 120
+context_chunks = 6
+
+[github]
+fail_on = "high"                 # low | medium | high | never
+inline_comments = true

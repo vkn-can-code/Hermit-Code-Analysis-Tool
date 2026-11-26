@@ -1,0 +1,22 @@
+[package]
+name = "hermit-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = "1.0.104"
+hermit-ai = { version = "0.1.0", path = "../hermit-ai" }
+hermit-core = { version = "0.1.0", path = "../hermit-core" }
+hermit-diff = { version = "0.1.0", path = "../hermit-diff" }
+hermit-graph = { version = "0.1.0", path = "../hermit-graph" }
+hermit-lang = { version = "0.1.0", path = "../hermit-lang" }
+hermit-risk = { version = "0.1.0", path = "../hermit-risk" }
+hermit-security = { version = "0.1.0", path = "../hermit-security" }
+hermit-tests = { version = "0.1.0", path = "../hermit-tests" }
+serde = { version = "1.0.229", features = ["derive"] }
+toml = "1.2.1"
+tracing = "0.1.44"
+
+[lints]
+workspace = true

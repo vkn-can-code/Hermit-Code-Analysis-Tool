@@ -1,0 +1,8 @@
+# Ground truth for `hermit bench`.
+[expect]
+fixed_cwes = ["CWE-89"]
+new_cwes = []
+changed = ["services/billing.py::get_user_subscription"]
+impacted = ["services/billing.py::monthly_total", "api/payments.py::subscription_handler", "api/payments.py::charge_handler"]
+tests = ["tests/test_billing.py::test_get_user_subscription", "tests/test_billing.py::test_monthly_total"]
+tier = "low"

@@ -1,0 +1,203 @@
+{
+ "ai": {
+  "comments": [
+   {
+    "body": "The change fixes a SQL injection vulnerability by using a parameterized query instead of string formatting. This is a critical security fix.",
+    "file": "services/billing.py",
+    "line": 6,
+    "suggestion": null
+   },
+   {
+    "body": "The function now calls `invalidate_cache` to ensure the cache is updated when the user subscription changes. This is a good practice for maintaining data consistency.",
+    "file": "services/billing.py",
+    "line": 8,
+    "suggestion": null
+   }
+  ],
+  "latency_ms": 11910,
+  "model": "qwen2.5-coder:7b",
+  "proposed_tests": [
+   "def test_get_user_subscription_with_cache_invalidation(self):\\n    db = FakeDB()\\n    db.execute = Mock(return_value=FakeDB())\\n    db.fetchone = Mock(return_value={'id': '123', 'price': 10})\\n    billing.invalidate_cache = Mock()\\n    result = billing.get_user_subscription(db, '123')\\n    self.assertEqual(result, {'id': '123', 'price': 10})\\n    billing.invalidate_cache.assert_called_once_with('org:123')\ndef test_monthly_total_with_cache_invalidation(self):\\n    db = FakeDB()\\n    db.execute = Mock(return_value=FakeDB())\\n    db.fetchone = Mock(return_value={'id': '123', 'price': 10})\\n    billing.invalidate_cache = Mock()\\n    result = billing.monthly_total(db, '123')\\n    self.assertEqual(result, 10)\\n    billing.invalidate_cache.assert_called_once_with('total:123')"
+  ],
+  "rejected": 0,
+  "summary": "This change fixes a SQL injection vulnerability and updates the cache when a user subscription changes. It is a low-risk change with no breaking changes or new dependencies."
+ },
+ "base": "ba0d628e4cbb57472cb5b553fed8c2982f84ab4e",
+ "files": [
+  {
+   "added": [
+    {
+     "end": 1,
+     "start": 1
+    },
+    {
+     "end": 9,
+     "start": 5
+    }
+   ],
+   "additions": 6,
+   "deletions": 4,
+   "language": "python",
+   "old_path": null,
+   "path": "services/billing.py",
+   "removed": [
+    {
+     "end": 1,
+     "start": 1
+    },
+    {
+     "end": 7,
+     "start": 5
+    }
+   ],
+   "status": "modified"
+  }
+ ],
+ "findings": [
+  {
+   "cwe": "CWE-89",
+   "end_line": 7,
+   "engine": "semgrep",
+   "file": "services/billing.py",
+   "line": 7,
+   "message": "SQL text is built from variables and passed to execute(). Use bound parameters instead of string formatting.",
+   "rule_id": "hermit.python.sql-injection",
+   "severity": "critical",
+   "snippet": "    return db.execute(query).fetchone()",
+   "state": "fixed",
+   "title": "SQL injection"
+  }
+ ],
+ "head": "bb46de6be17ab0b558cdeef1677ab15715ec4edf",
+ "impacted": [
+  {
+   "depth": 1,
+   "file": "api/payments.py",
+   "line": 11,
+   "qualified": "api/payments.py::subscription_handler",
+   "sensitive": true,
+   "via": "services/billing.py::get_user_subscription"
+  },
+  {
+   "depth": 1,
+   "file": "services/billing.py",
+   "line": 16,
+   "qualified": "services/billing.py::monthly_total",
+   "sensitive": true,
+   "via": "services/billing.py::get_user_subscription"
+  },
+  {
+   "depth": 2,
+   "file": "api/payments.py",
+   "line": 6,
+   "qualified": "api/payments.py::charge_handler",
+   "sensitive": true,
+   "via": "services/billing.py::get_user_subscription"
+  }
+ ],
+ "new_dependencies": [
+  {
+   "file": "services/billing.py",
+   "from": "services/billing.py::get_user_subscription",
+   "line": 8,
+   "to": "services/cache.py::invalidate_cache"
+  }
+ ],
+ "repo": "demo",
+ "risk": {
+  "factors": [
+   {
+    "detail": "0 new finding(s): 0 critical, 0 high, 0 medium, 0 low; 1 fixed",
+    "max": 60.0,
+    "name": "security",
+    "points": 0.0
+   },
+   {
+    "detail": "3 impacted caller(s), 2 direct; 3 in sensitive areas",
+    "max": 20.0,
+    "name": "blast_radius",
+    "points": 17.0
+   },
+   {
+    "detail": "no signature change or deletion with live callers",
+    "max": 20.0,
+    "name": "breaking_change",
+    "points": 0.0
+   },
+   {
+    "detail": "+0 cyclomatic complexity; most complex changed function = 1",
+    "max": 15.0,
+    "name": "complexity",
+    "points": 0.0
+   },
+   {
+    "detail": "10 changed line(s) in 1 file(s)",
+    "max": 10.0,
+    "name": "size",
+    "points": 0.2
+   },
+   {
+    "detail": "0 of 1 changed function(s) not reached by any test",
+    "max": 15.0,
+    "name": "test_gap",
+    "points": 0.0
+   }
+  ],
+  "score": 17,
+  "tier": "low"
+ },
+ "symbols": [
+  {
+   "change": "modified",
+   "complexity_after": 1,
+   "complexity_before": 1,
+   "signature_changed": false,
+   "symbol": {
+    "complexity": 1,
+    "file": "services/billing.py",
+    "is_test": false,
+    "kind": "function",
+    "name": "get_user_subscription",
+    "qualified": "services/billing.py::get_user_subscription",
+    "range": {
+     "end": 9,
+     "start": 4
+    },
+    "signature": "get_user_subscription(db, org_id: str)"
+   }
+  }
+ ],
+ "tests": [
+  {
+   "command": "pytest 'tests/test_billing.py::test_get_user_subscription'",
+   "covers": [
+    "services/billing.py::get_user_subscription"
+   ],
+   "distance": 1,
+   "file": "tests/test_billing.py",
+   "line": 16,
+   "qualified": "tests/test_billing.py::test_get_user_subscription"
+  },
+  {
+   "command": "pytest 'tests/test_billing.py::test_monthly_total'",
+   "covers": [
+    "services/billing.py::get_user_subscription"
+   ],
+   "distance": 2,
+   "file": "tests/test_billing.py",
+   "line": 12,
+   "qualified": "tests/test_billing.py::test_monthly_total"
+  }
+ ],
+ "timings": {
+  "ai_ms": 11910,
+  "diff_ms": 1,
+  "graph_ms": 0,
+  "parse_ms": 0,
+  "risk_ms": 0,
+  "security_ms": 1738,
+  "tests_ms": 0,
+  "total_ms": 13650
+ },
+ "untested": []
+}

@@ -1,0 +1,60 @@
+name: Hermit code analysis
+description: Deterministic PR analysis (AST, Semgrep, call-graph blast radius, test selection, risk score) with optional local-LLM review.
+branding:
+  icon: shield
+  color: blue
+inputs:
+  fail-on:
+    description: Fail the job when risk reaches this tier (low | medium | high | never).
+    default: high
+  ai:
+    description: Run the AI review (requires an Ollama endpoint reachable from the runner).
+    default: "false"
+  ollama-url:
+    description: Ollama base URL when ai is true.
+    default: http://127.0.0.1:11434
+  version:
+    description: Git ref of Hermit to build.
+    default: main
+outputs:
+  risk-score:
+    description: 0-100 risk score.
+    value: ${{ steps.hermit.outputs.risk-score }}
+  risk-tier:
+    description: low | medium | high.
+    value: ${{ steps.hermit.outputs.risk-tier }}
+runs:
+  using: composite
+  steps:
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    - name: Cache Hermit build
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/hermit
+        key: hermit-${{ runner.os }}-${{ inputs.version }}
+    - name: Install Hermit + Semgrep
+      shell: bash
+      run: |
+        command -v hermit >/dev/null || cargo install --locked --path "${{ github.action_path }}/../crates/hermit-cli"
+        pipx install semgrep || pip install --user semgrep
+    - name: Analyze pull request
+      id: hermit
+      shell: bash
+      env:
+        BASE: ${{ github.event.pull_request.base.sha }}
+        HEAD: ${{ github.event.pull_request.head.sha }}
+      run: |
+        AI_FLAG="--no-ai"; [ "${{ inputs.ai }}" = "true" ] && AI_FLAG=""
+        set +e
+        hermit analyze --repo . --base "$BASE" --head "$HEAD" $AI_FLAG --format json --out hermit.json
+        hermit analyze --repo . --base "$BASE" --head "$HEAD" --no-ai --out hermit.md
+        set -e
+        SCORE=$(python3 -c "import json;print(json.load(open('hermit.json'))['risk']['score'])")
+        TIER=$(python3 -c "import json;print(json.load(open('hermit.json'))['risk']['tier'])")
+        echo "risk-score=$SCORE" >> "$GITHUB_OUTPUT"
+        echo "risk-tier=$TIER" >> "$GITHUB_OUTPUT"
+        cat hermit.md >> "$GITHUB_STEP_SUMMARY"
+        case "${{ inputs.fail-on }}:$TIER" in
+          low:*|medium:medium|medium:high|high:high) echo "::error::Hermit risk $TIER ($SCORE/100)"; exit 2 ;;
+        esac

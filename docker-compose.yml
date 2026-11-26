@@ -1,0 +1,22 @@
+# docker compose up  ->  dashboard on http://localhost:8080
+# First run: docker compose exec ollama ollama pull qwen2.5-coder:7b && ollama pull nomic-embed-text
+services:
+  db:
+    image: postgres:16
+    environment: { POSTGRES_DB: hermit, POSTGRES_PASSWORD: hermit }
+    volumes: [db:/var/lib/postgresql/data]
+  ollama:
+    image: ollama/ollama
+    volumes: [ollama:/root/.ollama]
+  hermit:
+    build: .
+    ports: ["127.0.0.1:8080:8080"]
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://postgres:hermit@db/hermit
+      HERMIT_ALLOW_LOCAL: "0"
+      HERMIT_OLLAMA_URL: http://ollama:11434
+    depends_on: [db, ollama]
+volumes:
+  db: {}
+  ollama: {}

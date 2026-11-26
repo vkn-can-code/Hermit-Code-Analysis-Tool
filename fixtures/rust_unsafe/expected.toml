@@ -1,0 +1,5 @@
+[expect]
+new_cwes = ["CWE-119"]
+changed = ["src/buffer.rs::Ring.read_at"]
+impacted = ["src/lib.rs::checksum"]
+tests = ["src/lib.rs::tests.checksum_of_pushed_bytes", "src/lib.rs::tests.new_ring_is_zeroed"]

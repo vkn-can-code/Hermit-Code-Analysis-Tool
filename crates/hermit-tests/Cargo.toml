@@ -1,0 +1,15 @@
+[package]
+name = "hermit-tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+hermit-core = { version = "0.1.0", path = "../hermit-core" }
+hermit-graph = { version = "0.1.0", path = "../hermit-graph" }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+hermit-lang = { path = "../hermit-lang" }

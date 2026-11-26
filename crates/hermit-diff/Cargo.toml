@@ -1,0 +1,13 @@
+[package]
+name = "hermit-diff"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = "1.0.104"
+git2 = "0.21.0"
+hermit-core = { version = "0.1.0", path = "../hermit-core" }
+
+[lints]
+workspace = true

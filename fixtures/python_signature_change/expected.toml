@@ -1,0 +1,5 @@
+[expect]
+changed = ["shop/money.py::to_cents"]
+impacted = ["shop/orders.py::order_total", "shop/invoices.py::invoice_line", "shop/invoices.py::invoice_total"]
+tests = ["tests/test_orders.py::test_order_total"]
+tier = "medium"

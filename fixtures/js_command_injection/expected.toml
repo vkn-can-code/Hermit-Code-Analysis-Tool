@@ -1,0 +1,6 @@
+[expect]
+new_cwes = ["CWE-78", "CWE-798"]
+changed = ["src/thumbs.js::makeThumb", "src/server.js::uploadHandler"]
+impacted = []
+tests = ["test/thumbs.test.js::makeThumb runs convert"]
+tier = "high"

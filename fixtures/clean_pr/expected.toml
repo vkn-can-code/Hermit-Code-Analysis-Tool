@@ -1,0 +1,5 @@
+[expect]
+changed = ["lib/text.py::truncate", "tests/test_text.py::test_truncate"]
+impacted = []
+tests = ["tests/test_text.py::test_truncate"]
+tier = "low"

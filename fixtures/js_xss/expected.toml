@@ -1,0 +1,5 @@
+[expect]
+new_cwes = ["CWE-79"]
+changed = ["src/render.ts::renderComment"]
+impacted = ["src/app.ts::showComments"]
+tests = ["src/render.test.ts::render.renders author and body"]

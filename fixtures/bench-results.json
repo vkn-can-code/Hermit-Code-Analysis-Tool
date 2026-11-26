@@ -1,0 +1,212 @@
+{
+  "fixtures": [
+    {
+      "name": "clean_pr",
+      "score": 5,
+      "tier": "low",
+      "tier_ok": true,
+      "security": {
+        "tp": 0,
+        "fp": 0,
+        "fn_": 0
+      },
+      "changed": {
+        "tp": 2,
+        "fp": 0,
+        "fn_": 0
+      },
+      "impacted": {
+        "tp": 0,
+        "fp": 0,
+        "fn_": 0
+      },
+      "tests": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "tests_selected": 1,
+      "tests_total": 2,
+      "analysis_ms": 1727,
+      "ai_ms": null,
+      "ai_comments": null,
+      "ai_rejected": null,
+      "misses": []
+    },
+    {
+      "name": "js_command_injection",
+      "score": 77,
+      "tier": "high",
+      "tier_ok": true,
+      "security": {
+        "tp": 2,
+        "fp": 0,
+        "fn_": 0
+      },
+      "changed": {
+        "tp": 2,
+        "fp": 0,
+        "fn_": 0
+      },
+      "impacted": {
+        "tp": 0,
+        "fp": 0,
+        "fn_": 0
+      },
+      "tests": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "tests_selected": 1,
+      "tests_total": 1,
+      "analysis_ms": 1408,
+      "ai_ms": null,
+      "ai_comments": null,
+      "ai_rejected": null,
+      "misses": []
+    },
+    {
+      "name": "js_xss",
+      "score": 58,
+      "tier": "medium",
+      "tier_ok": true,
+      "security": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "changed": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "impacted": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "tests": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "tests_selected": 1,
+      "tests_total": 2,
+      "analysis_ms": 1416,
+      "ai_ms": null,
+      "ai_comments": null,
+      "ai_rejected": null,
+      "misses": []
+    },
+    {
+      "name": "python_signature_change",
+      "score": 34,
+      "tier": "medium",
+      "tier_ok": true,
+      "security": {
+        "tp": 0,
+        "fp": 0,
+        "fn_": 0
+      },
+      "changed": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "impacted": {
+        "tp": 3,
+        "fp": 0,
+        "fn_": 0
+      },
+      "tests": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "tests_selected": 1,
+      "tests_total": 2,
+      "analysis_ms": 1400,
+      "ai_ms": null,
+      "ai_comments": null,
+      "ai_rejected": null,
+      "misses": []
+    },
+    {
+      "name": "python_sqli",
+      "score": 17,
+      "tier": "low",
+      "tier_ok": true,
+      "security": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "changed": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "impacted": {
+        "tp": 3,
+        "fp": 0,
+        "fn_": 0
+      },
+      "tests": {
+        "tp": 2,
+        "fp": 0,
+        "fn_": 0
+      },
+      "tests_selected": 2,
+      "tests_total": 3,
+      "analysis_ms": 1415,
+      "ai_ms": null,
+      "ai_comments": null,
+      "ai_rejected": null,
+      "misses": []
+    },
+    {
+      "name": "rust_unsafe",
+      "score": 11,
+      "tier": "low",
+      "tier_ok": true,
+      "security": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "changed": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "impacted": {
+        "tp": 1,
+        "fp": 0,
+        "fn_": 0
+      },
+      "tests": {
+        "tp": 2,
+        "fp": 0,
+        "fn_": 0
+      },
+      "tests_selected": 2,
+      "tests_total": 2,
+      "analysis_ms": 1405,
+      "ai_ms": null,
+      "ai_comments": null,
+      "ai_rejected": null,
+      "misses": []
+    }
+  ],
+  "security_precision": 1.0,
+  "security_recall": 1.0,
+  "impact_precision": 1.0,
+  "impact_recall": 1.0,
+  "test_precision": 1.0,
+  "test_recall": 1.0,
+  "tests_selected": 8,
+  "tests_total": 12,
+  "p50_ms": 1415,
+  "p95_ms": 1727
+}

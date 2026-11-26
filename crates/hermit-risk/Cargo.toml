@@ -1,0 +1,12 @@
+[package]
+name = "hermit-risk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+hermit-core = { version = "0.1.0", path = "../hermit-core" }
+serde = { version = "1.0.229", features = ["derive"] }
+
+[lints]
+workspace = true
