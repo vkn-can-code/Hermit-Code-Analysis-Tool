@@ -1,133 +1,197 @@
 # Hermit — Intelligent Code Analysis
 
-**AI-assisted pull request review that runs entirely on-premise.** Hermit combines deterministic analysis (tree-sitter ASTs, Semgrep, a repo-wide call graph) with a local LLM (Qwen 2.5 Coder via Ollama) to tell reviewers what a change touches, whether it is insecure, what it can break, which tests to run, and how risky it is. No source code leaves your machine.
+**Hermit reviews pull requests for you, and runs entirely on your own computer.**
 
-> Semester 6 major project. Full technical documentation: [`docs/Hermit_Features_and_Working.pdf`](docs/Hermit_Features_and_Working.pdf).
+When someone changes code, the change often affects more than the lines they touched. Other functions call the changed code, new security holes can slip in, and some tests should be re-run while others don't matter. Hermit works all of that out automatically and gives the reviewer a short, clear report.
 
-## Features
+No code is sent to the cloud. The AI model runs locally.
 
-Hermit reviews pull requests the way a careful senior engineer would:
+> Semester 6 major project · Full documentation: [`docs/Hermit_Features_and_Working.pdf`](docs/Hermit_Features_and_Working.pdf)
 
-1. **Diff + AST**: maps every changed line to the function or class it belongs to (tree-sitter: Python, JavaScript, TypeScript/TSX, Rust).
-2. **Security**: Semgrep with 18 bundled rules (SQL/command/code injection, XSS, unsafe deserialization, weak crypto, TLS bypass, unsafe Rust) plus built-in secret detection. Each finding is labelled **new** (introduced) or **fixed** (removed by the PR).
-3. **Blast radius**: a repo-wide call graph shows every caller the change can break, how far away it is, and whether it sits in sensitive code (auth, payments, …). New dependencies are flagged.
-4. **Test intelligence**: selects only the existing tests whose call paths reach the change, with ready-to-run commands (`pytest`, `jest`/`vitest`/`mocha`, `cargo test`), and lists changed functions no test covers.
-5. **Risk score**: an explainable 0–100 score from six capped factors (security, blast radius, breaking change, complexity, size, test gap).
-6. **AI review**: a local `qwen2.5-coder:7b` model (Ollama) writes a summary, inline comments and candidate tests. Its prompt contains only verified facts, its output must match a JSON schema, and a validator drops comments that point outside the diff or cite code that does not exist.
-7. **Delivery**: CLI, GitHub App (Check Run, summary comment, inline review), GitHub Action, REST API with live progress, and a web dashboard.
+---
 
-## Sample output
+## What Hermit tells you
 
-The SQL-injection fix from `fixtures/python_sqli` (run `make demo`):
+For every pull request, Hermit answers five questions:
+
+| Question | How Hermit answers it |
+|---|---|
+| **What changed?** | Finds exactly which functions and classes were edited, and whether their inputs (signature) or complexity changed. |
+| **Is it secure?** | Scans the changed lines for vulnerabilities such as SQL injection, command injection, XSS and leaked passwords or keys. It labels each one **new** (introduced) or **fixed** (removed by this PR). |
+| **What could break?** | Follows the code to find every function that calls the changed code (the *blast radius*), up to 3 levels away. It highlights risky areas like login or payments. |
+| **Which tests should run?** | Picks only the existing tests that actually reach the changed code and gives you the exact command to run each one. It also lists changed code that no test covers. |
+| **How risky is it?** | Gives a score from **0 to 100** (low / medium / high) and shows exactly where the points came from. |
+
+On top of that, a **local AI reviewer** writes a plain-English summary, line-by-line comments and suggested tests.
+
+## Example
+
+Real output for a PR that fixes a SQL-injection bug (try it with `make demo`):
 
 ```text
-## 🟢 Hermit risk: LOW (17 / 100)
-1 file · +6 / -4 · 1 symbol changed · 3 impacted callers · 0 new / 1 fixed finding · 2 tests selected
+🟢 Hermit risk: LOW (17 / 100)
 
-Security       🛑 SQL injection (CWE-89) services/billing.py:7 ✅ fixed
-Blast radius   subscription_handler (1) · monthly_total (1) · charge_handler (2) — all sensitive
-New dependency get_user_subscription now calls services/cache.py::invalidate_cache
-Tests          pytest 'tests/test_billing.py::test_get_user_subscription'
-               pytest 'tests/test_billing.py::test_monthly_total'
-AI review      2 inline comments verified against the diff, 0 dropped (qwen2.5-coder:7b, ~12 s)
+Security        SQL injection (CWE-89) in services/billing.py   ✅ fixed by this PR
+What could break subscription_handler, monthly_total, charge_handler   (payment code)
+New dependency  get_user_subscription now calls invalidate_cache
+Tests to run    pytest 'tests/test_billing.py::test_get_user_subscription'
+                pytest 'tests/test_billing.py::test_monthly_total'      (2 of 3 tests)
+AI review       2 comments, all checked against the code
 ```
 
-## Quick start
+## How it works
+
+```
+Pull request ─► 1 Read the diff ─► 2 Security scan ─► 3 Find affected callers
+                                                              │
+     Report  ◄─ 6 AI review ◄─ 5 Risk score ◄─ 4 Pick tests ◄─┘
+```
+
+1. **Read the diff.** Git shows which lines changed. Hermit parses the code with tree-sitter to see which *function* each line belongs to. Supported languages: Python, JavaScript, TypeScript and Rust.
+2. **Security scan.** [Semgrep](https://semgrep.dev) checks the old and new versions of each changed file with 18 built-in rules, plus a scanner for hard-coded secrets.
+3. **Find affected callers.** Hermit builds a map of which function calls which across the whole repository (a *call graph*). It walks backwards from the changed code to find everything that depends on it.
+4. **Pick tests.** It keeps only the tests whose call paths lead to the changed code.
+5. **Risk score.** Six factors are added up: new security issues, blast radius, breaking changes, added complexity, size of the change and untested code. Each factor has a maximum.
+6. **AI review.** A local model (Qwen 2.5 Coder, run with [Ollama](https://ollama.com)) writes the summary and comments.
+
+**Why trust the AI part?** Steps 1–5 are plain, repeatable analysis; the AI only explains them. It is given only verified facts, it must answer in a fixed format, and any comment about lines outside the change, or about code that doesn't exist, is thrown away automatically. If the AI is slow or not running, you still get the full report.
+
+## Ways to use it
+
+- **Command line:** `hermit analyze` prints the report in your terminal.
+- **GitHub App:** on every pull request Hermit adds a pass/fail check, one summary comment (updated on each push) and inline review comments.
+- **GitHub Action:** runs inside your CI with no server needed, and can fail the build when risk is too high.
+- **Web dashboard:** analyze any local repository and watch each step run live.
+
+---
+
+## Getting started
+
+**1. Install the tools** (macOS, once):
 
 ```sh
-brew install rustup semgrep postgresql@16 ollama   # once
+brew install rustup semgrep postgresql@16 ollama
 rustup default stable
 ollama pull qwen2.5-coder:7b && ollama pull nomic-embed-text
+```
 
+**2. Build and check your setup:**
+
+```sh
 make build
-./target/release/hermit doctor                     # checks git, semgrep, ollama, postgres
-make demo                                          # the SQL-injection fix PR from the slides
-./target/release/hermit analyze --repo ~/code/app --base main --head my-branch
+./target/release/hermit doctor      # confirms git, Semgrep, Ollama and PostgreSQL are ready
 ```
 
-`hermit analyze` options: `--format markdown|json`, `--out FILE`, `--no-ai`, `--fail-on low|medium|high` (exit code 2), `--config hermit.toml`.
-
-## Server, dashboard and GitHub App
+**3. Try it:**
 
 ```sh
-createdb hermit
-(cd web && npm ci && npm run build)                # dashboard -> web/out
-cp .env.example .env                               # fill in GitHub App values (optional)
-scripts/dev.sh                                     # http://127.0.0.1:8080
+make demo                           # the SQL-injection example above
+./target/release/hermit analyze --repo ~/code/my-app --base main --head my-branch
 ```
 
-Without GitHub credentials you can still analyze local repositories from the dashboard form or the API:
+Useful options for `hermit analyze`:
+
+| Option | What it does |
+|---|---|
+| `--no-ai` | skip the AI review (faster) |
+| `--format json` | machine-readable output |
+| `--out report.md` | save to a file |
+| `--fail-on high` | exit with code 2 if risk reaches that level (for CI) |
+| `--config hermit.toml` | use a custom settings file |
+
+### Dashboard and GitHub App
 
 ```sh
-curl -X POST localhost:8080/api/analyses -H 'content-type: application/json' \
-     -d '{"repo_path":"/path/to/repo","base":"main","head":"feature"}'
+createdb hermit                         # database for saved reports
+(cd web && npm ci && npm run build)     # build the dashboard
+cp .env.example .env                    # add GitHub App details (optional)
+scripts/dev.sh                          # open http://127.0.0.1:8080
 ```
 
-### GitHub App setup
+You don't need GitHub to use the dashboard: type a local repository path into the form and press **Run Hermit**.
 
-1. GitHub → Settings → Developer settings → GitHub Apps → **New GitHub App**.
-2. Webhook URL: a tunnel to your machine, e.g. create a channel at <https://smee.io> and run `SMEE_URL=https://smee.io/<id> scripts/dev.sh`. Set a webhook secret.
-3. Permissions: *Checks* read & write, *Pull requests* read & write, *Contents* read, *Issues* read & write. Events: *Pull request*.
-4. Generate a private key and put `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY_PATH` and `GITHUB_WEBHOOK_SECRET` in `.env`.
-5. Install the App on a repository and open a pull request. Hermit posts a Check Run, one summary comment (updated on every push), and an inline review.
+<details>
+<summary><b>Connecting the GitHub App (step by step)</b></summary>
 
-### API
+1. On GitHub go to **Settings → Developer settings → GitHub Apps → New GitHub App**.
+2. **Webhook URL:** GitHub needs to reach your computer. Create a free channel at <https://smee.io>, use its URL here, and start Hermit with `SMEE_URL=https://smee.io/<id> scripts/dev.sh`. Choose a webhook secret.
+3. **Permissions:** Checks, Pull requests and Issues set to *read & write*; Contents set to *read*. **Events:** *Pull request*.
+4. Generate a private key, then fill in `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY_PATH` and `GITHUB_WEBHOOK_SECRET` in `.env`.
+5. Install the App on a repository and open a pull request.
+
+</details>
+
+<details>
+<summary><b>REST API</b></summary>
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/webhooks/github` | GitHub webhook (HMAC-SHA256 verified) |
-| POST | `/api/analyses` | queue a local repository analysis |
-| GET | `/api/analyses` | recent analyses (`?repo=`, `?limit=`) |
-| GET | `/api/analyses/{id}` | status, full JSON report and markdown |
-| GET | `/api/repos` | repositories with latest score |
-| GET | `/api/events` | Server-Sent Events: live stage progress |
-| GET | `/api/health` | database / Ollama / Semgrep / GitHub status |
+| POST | `/webhooks/github` | receives GitHub events (signature-checked) |
+| POST | `/api/analyses` | analyze a local repo: `{"repo_path": "...", "base": "main", "head": "feature"}` |
+| GET | `/api/analyses` | list recent analyses |
+| GET | `/api/analyses/{id}` | one analysis: status, full report, markdown |
+| GET | `/api/repos` | repositories and their latest score |
+| GET | `/api/events` | live progress (Server-Sent Events) |
+| GET | `/api/health` | status of database, Ollama, Semgrep, GitHub |
 
-## Configuration
+</details>
 
-Put a `hermit.toml` in the analyzed repository. See [`hermit.example.toml`](hermit.example.toml): ignore paths, graph depth, sensitive keywords, Semgrep packs, risk weights, AI model and timeouts, and Check Run fail threshold. Environment overrides: `HERMIT_OLLAMA_URL`, `HERMIT_MODEL`, `HERMIT_AI=0`.
+### Settings
 
-## Evaluation
+Add a `hermit.toml` file to the repository you analyze to change the defaults. You can set:
 
-```sh
-make bench      # fixtures/<name>/{base,head,expected.toml}
-```
+- folders to ignore;
+- how far to search for callers;
+- which words mark sensitive code (e.g. `auth`, `payment`);
+- the risk weights and thresholds;
+- the AI model and timeout;
+- when the GitHub check should fail.
 
-| Fixture | What it tests |
+Every option is explained in [`hermit.example.toml`](hermit.example.toml). You can also use environment variables: `HERMIT_OLLAMA_URL`, `HERMIT_MODEL`, and `HERMIT_AI=0` to turn the AI off.
+
+---
+
+## Does it work? (testing)
+
+`make bench` runs Hermit on six small example projects. Each one has a known correct answer, and Hermit's output is compared against it.
+
+| Example | What it checks |
 |---|---|
-| `python_sqli` | SQL injection *fixed*, new cache dependency, 3 callers, 2 tests |
-| `js_xss` | new `innerHTML` XSS in TypeScript, vitest selection |
-| `js_command_injection` | `execSync` with template string + leaked GitHub token |
-| `rust_unsafe` | new `unsafe` block, calls inside `assert_eq!` macros |
-| `python_signature_change` | breaking signature change with live callers |
-| `clean_pr` | low-risk addition with its own test |
+| `python_sqli` | spots a fixed SQL injection, a new dependency, 3 callers, 2 relevant tests |
+| `js_xss` | spots a new cross-site-scripting bug in TypeScript |
+| `js_command_injection` | spots a command-injection bug and a leaked token |
+| `rust_unsafe` | spots new `unsafe` Rust code; finds tests hidden inside macros |
+| `python_signature_change` | flags a change that will break existing callers |
+| `clean_pr` | rates a safe change as low risk |
 
-The current result is in `fixtures/bench-results.json`. These fixtures were written by the author to exercise each feature. They show the pipeline works end to end; they are not an independent accuracy benchmark.
+Hermit currently gets all six right (results in `fixtures/bench-results.json`). These examples were written to exercise each feature, so they show that the features work, not how accurate Hermit is on any real-world codebase. On a real project (psf/requests, about 12,000 lines), mapping the whole codebase took 36 ms, and Hermit picked 107 of 347 tests to run.
 
-## Architecture
+## Project layout
 
 ```
-crates/
-  hermit-core      shared types (ChangedFile, Symbol, Finding, RiskReport, AnalysisReport)
-  hermit-diff      git2: base..head diff, line ranges, file contents at each revision
-  hermit-lang      tree-sitter parsing: symbols, calls, imports, complexity, diff->symbol mapping
-  hermit-graph     parallel repo index + call graph, blast radius
-  hermit-security  Semgrep runner + bundled rules + builtin secret/fallback rules
-  hermit-tests     test discovery, selection, runner commands
-  hermit-risk      explainable risk score
-  hermit-ai        Ollama client, retrieval, grounded prompt, validator
-  hermit-engine    pipeline orchestration, hermit.toml, markdown report
-  hermit-store     PostgreSQL: analyses, job queue (SKIP LOCKED), embedding cache
-  hermit-github    webhook verification, App JWT/tokens, Check Runs, comments, checkout
-  hermit-server    axum API, SSE, dashboard hosting, workers
-  hermit-cli       `hermit analyze | serve | bench | doctor`
-web/               Next.js + Tailwind dashboard (static export)
-action/            GitHub Action
-fixtures/          labelled benchmark cases
+crates/            the Rust code, one folder per part of the pipeline
+  hermit-diff        reads the git diff
+  hermit-lang        parses code (functions, calls, imports, complexity)
+  hermit-graph       builds the call graph and finds affected callers
+  hermit-security    runs Semgrep and the secret scanner
+  hermit-tests       picks tests and builds the commands to run them
+  hermit-risk        calculates the risk score
+  hermit-ai          talks to the local AI model and checks its answers
+  hermit-engine      runs all the steps in order and writes the report
+  hermit-store       saves results in PostgreSQL; job queue
+  hermit-github      GitHub App: webhooks, checks, comments
+  hermit-server      web server, API and live updates
+  hermit-cli         the `hermit` command
+  hermit-core        data types shared by all of the above
+web/               the dashboard (Next.js)
+action/            the GitHub Action
+fixtures/          the six test examples
+docs/              PDF documentation
 ```
 
-## Limits
+## Known limits
 
-- Static call resolution in Python and JavaScript is approximate: dynamic dispatch, monkey-patching and reflection are invisible. Ambiguous names (more than 3 definitions) are skipped rather than guessed.
-- The 7B model takes about 10–20 s per PR on an M4 Pro. If it is slow or unavailable, the deterministic report is still produced.
-- Registry Semgrep packs (`p/...`) need network access. The bundled rules work offline.
+- **Some calls can't be traced.** In Python and JavaScript, code that decides at runtime what to call (dynamic dispatch, monkey-patching) is invisible to the call graph. When a function name is too common to be sure which one is meant, Hermit skips it rather than guessing.
+- **The AI takes time.** The local model takes about 10–20 seconds per pull request on an Apple M4 Pro. Everything else takes about 1–2 seconds.
+- **The AI summary isn't fact-checked yet.** Comments are verified, but the summary text could still contain a mistake. That is why the verified facts are always shown next to it.
+- **Some extra Semgrep rule packs need the internet.** The built-in rules work offline.
